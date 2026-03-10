@@ -1,10 +1,15 @@
 @import "tailwindcss";
 
 :root {
-  --background: #000000;
+  --background: #0a0a0a;
   --foreground: #ededed;
-  --akira-red: #ff0000;
+  --akira-red: #ff0033;
+  --neon-blue: #00d4ff;
+  --neon-pink: #ff2d95;
+  --neon-violet: #b829dd;
   --nishi-teal: #008080;
+  --washi-cream: #f5e6c8;
+  --sumi-black: #1a1a1a;
 }
 
 @theme inline {
@@ -23,6 +28,7 @@ body {
   overflow-x: hidden;
 }
 
+/* === 3D Card Utilities === */
 .perspective-1000 {
   perspective: 1000px;
 }
@@ -32,12 +38,50 @@ body {
 }
 
 .backface-hidden {
+  -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
 }
 
-.backface-hidden {
-  -webkit-backface-visibility: hidden;
-  backface-visibility: hidden;
+/* === Washi Paper Background === */
+.washi-bg {
+  background-color: #0a0a0a;
+  background-image:
+    radial-gradient(ellipse at 20% 50%, rgba(255, 0, 51, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, rgba(0, 212, 255, 0.06) 0%, transparent 50%),
+    radial-gradient(ellipse at 60% 80%, rgba(184, 41, 221, 0.05) 0%, transparent 50%);
+}
+
+/* === Scanline Overlay === */
+.scanlines::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 9998;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.03) 2px,
+    rgba(0, 0, 0, 0.03) 4px
+  );
+}
+
+/* === Noise Overlay === */
+.noise-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  opacity: 0.04;
+  z-index: 9999;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  animation: noise 8s steps(10) infinite;
 }
 
 @keyframes noise {
@@ -53,33 +97,90 @@ body {
   90% { background-position: -10% 10%; }
 }
 
-@keyframes glow-pulse {
-  0%, 100% { 
-    box-shadow: 0 0 20px rgba(0, 128, 128, 0.3);
-  }
-  50% { 
-    box-shadow: 0 0 40px rgba(0, 128, 128, 0.6);
-  }
+/* === Neon Glow Animations === */
+@keyframes glow-pulse-blue {
+  0%, 100% { box-shadow: 0 0 15px rgba(0, 212, 255, 0.3), inset 0 0 15px rgba(0, 212, 255, 0.1); }
+  50% { box-shadow: 0 0 30px rgba(0, 212, 255, 0.5), inset 0 0 30px rgba(0, 212, 255, 0.2); }
 }
 
-.akira-glow {
-  animation: glow-pulse 2s ease-in-out infinite;
+@keyframes glow-pulse-pink {
+  0%, 100% { box-shadow: 0 0 15px rgba(255, 45, 149, 0.3), inset 0 0 15px rgba(255, 45, 149, 0.1); }
+  50% { box-shadow: 0 0 30px rgba(255, 45, 149, 0.5), inset 0 0 30px rgba(255, 45, 149, 0.2); }
 }
 
-.noise-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
+@keyframes glow-pulse-red {
+  0%, 100% { box-shadow: 0 0 15px rgba(255, 0, 64, 0.3), inset 0 0 15px rgba(255, 0, 64, 0.1); }
+  50% { box-shadow: 0 0 30px rgba(255, 0, 64, 0.5), inset 0 0 30px rgba(255, 0, 64, 0.2); }
+}
+
+@keyframes text-glow {
+  0%, 100% { text-shadow: 0 0 10px currentColor, 0 0 20px currentColor; }
+  50% { text-shadow: 0 0 20px currentColor, 0 0 40px currentColor, 0 0 60px currentColor; }
+}
+
+@keyframes float-ink {
+  0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0.3; }
+  50% { transform: translateY(-20px) rotate(5deg); opacity: 0.6; }
+}
+
+/* === Card Washi Texture === */
+.card-washi {
+  background:
+    linear-gradient(135deg, rgba(245, 230, 200, 0.05) 0%, rgba(220, 200, 170, 0.03) 100%);
+}
+
+.card-front-washi {
+  background:
+    radial-gradient(ellipse at 30% 30%, rgba(245, 230, 200, 0.95) 0%, rgba(235, 220, 190, 0.9) 100%);
+}
+
+/* === Sumi-e Ink Strokes on Cards === */
+.sumi-border {
+  position: relative;
+}
+
+.sumi-border::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 14px;
+  background: linear-gradient(
+    135deg,
+    rgba(26, 26, 26, 0.8) 0%,
+    transparent 30%,
+    transparent 70%,
+    rgba(26, 26, 26, 0.6) 100%
+  );
+  z-index: -1;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  -webkit-mask-composite: xor;
+  padding: 2px;
+}
+
+/* === Responsive Card Grid === */
+.card-grid {
+  display: grid;
+  gap: 0.5rem;
   width: 100%;
-  height: 100%;
-  pointer-events: none;
-  opacity: 0.03;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
-  z-index: 9999;
+  max-width: 100%;
 }
 
+@media (min-width: 640px) {
+  .card-grid {
+    gap: 0.625rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .card-grid {
+    gap: 0.75rem;
+  }
+}
+
+/* === Custom Scrollbar === */
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -87,10 +188,27 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #008080;
-  border-radius: 4px;
+  background: var(--neon-blue);
+  border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #00a0a0;
+  background: var(--neon-pink);
+}
+
+/* === Font for Titles === */
+.font-cyber {
+  font-family: 'Orbitron', 'Noto Sans JP', sans-serif;
+  letter-spacing: 0.1em;
+}
+
+/* === Matched Card Pulse === */
+@keyframes match-pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+.match-found {
+  animation: match-pulse 0.4s ease-out;
 }

@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Katakana Memotest | Nishi Nihongo Gakko",
-  description: "Practice Katakana with this memory game - 西日本語学園",
+  description: "Practica Katakana con este juego de memoria - 西日本語学園 Nishi Nihongo Gakko",
 };
 
 export default function RootLayout({
@@ -13,7 +13,16 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ja">
-      <body className="antialiased">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700;900&family=Orbitron:wght@400;500;700;900&display=swap"
+          rel="stylesheet"
+        />
+      </head>
+      <body className="antialiased washi-bg scanlines">
+        <div className="noise-overlay" />
         {children}
       </body>
     </html>
