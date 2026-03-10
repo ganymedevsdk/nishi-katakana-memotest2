@@ -49,16 +49,37 @@ export const KATAKANA = [
 
 export type Katakana = (typeof KATAKANA)[number];
 
-export const DIFFICULTY = {
+export interface DifficultyConfig {
+  pairs: number;
+  cols: number;
+  rows: number;
+  name: string;
+  label: string;
+}
+
+export const DIFFICULTY: Record<string, DifficultyConfig> = {
   easy: { pairs: 8, name: 'Fácil', cols: 4, rows: 4, label: '4×4' },
   medium: { pairs: 18, name: 'Medio', cols: 6, rows: 6, label: '6×6' },
   hard: { pairs: 30, name: 'Difícil', cols: 10, rows: 6, label: '10×6' },
-} as const;
+};
 
-export type Difficulty = keyof typeof DIFFICULTY;
+// Mobile overrides for hard mode (screen < 640px)
+export const DIFFICULTY_MOBILE_HARD: DifficultyConfig = {
+  pairs: 12, name: 'Difícil', cols: 6, rows: 4, label: '6×4',
+};
+
+export type Difficulty = 'easy' | 'medium' | 'hard';
 
 export const NEON_COLORS: Record<Difficulty, { primary: string; glow: string }> = {
   easy: { primary: '#00d4ff', glow: 'rgba(0, 212, 255, 0.6)' },
   medium: { primary: '#ff2d95', glow: 'rgba(255, 45, 149, 0.6)' },
   hard: { primary: '#ff0040', glow: 'rgba(255, 0, 64, 0.6)' },
 };
+
+/** Returns the effective difficulty config, accounting for mobile screen size */
+export function getEffectiveDifficulty(difficulty: Difficulty, isMobile: boolean): DifficultyConfig {
+  if (difficulty === 'hard' && isMobile) {
+    return DIFFICULTY_MOBILE_HARD;
+  }
+  return DIFFICULTY[difficulty];
+}

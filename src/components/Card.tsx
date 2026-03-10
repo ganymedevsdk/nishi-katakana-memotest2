@@ -83,7 +83,7 @@ export const Card = memo(function Card({ katakana, isFlipped, isMatched, onClick
             <span
               className="font-bold text-gray-800 leading-none"
               style={{
-                fontSize: 'clamp(1.5rem, 5vw, 3.5rem)',
+                fontSize: 'clamp(1.6rem, 7vw, 3.5rem)',
                 fontFamily: "'Noto Sans JP', sans-serif",
               }}
             >
@@ -91,7 +91,7 @@ export const Card = memo(function Card({ katakana, isFlipped, isMatched, onClick
             </span>
             <span
               className="mt-0.5 text-gray-500 font-medium"
-              style={{ fontSize: 'clamp(0.5rem, 1.5vw, 0.875rem)' }}
+              style={{ fontSize: 'clamp(0.6rem, 2.5vw, 1rem)' }}
             >
               {katakana.romaji}
             </span>

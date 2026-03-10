@@ -6,7 +6,10 @@ import Image from 'next/image';
 import { Card } from './Card';
 import { VictoryScreen } from './VictoryScreen';
 import { InstagramButton } from './InstagramButton';
-import { KATAKANA, DIFFICULTY, Difficulty, Katakana, NEON_COLORS } from '@/data/katakana';
+import {
+  KATAKANA, DIFFICULTY, Difficulty, Katakana, NEON_COLORS,
+  DifficultyConfig, getEffectiveDifficulty,
+} from '@/data/katakana';
 import {
   playFlip, playMatch, playFail, playUnflip, playWin, playReset,
   toggleMute,
@@ -65,8 +68,8 @@ function shuffleArray<T>(array: T[]): T[] {
   return shuffled;
 }
 
-function generateCards(difficulty: Difficulty): CardItem[] {
-  const { pairs } = DIFFICULTY[difficulty];
+function generateCards(config: DifficultyConfig): CardItem[] {
+  const { pairs } = config;
   const shuffledKatakana = shuffleArray([...KATAKANA]);
 
   let selectedKatakana: Katakana[];
@@ -115,10 +118,16 @@ function formatTime(seconds: number): string {
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
+function checkIsMobile(): boolean {
+  if (typeof window === 'undefined') return false;
+  return window.innerWidth < 640;
+}
+
 // ─── Main Game ───────────────────────────────────────
 
 export function Game() {
   const [difficulty, setDifficulty] = useState<Difficulty>('easy');
+  const [isMobile, setIsMobile] = useState(false);
   const [cards, setCards] = useState<CardItem[]>([]);
   const [flippedCards, setFlippedCards] = useState<number[]>([]);
   const [matchedIds, setMatchedIds] = useState<Set<number>>(new Set());
@@ -138,12 +147,23 @@ export function Game() {
   const gridRef = useRef<HTMLDivElement>(null);
   const [gridMaxWidth, setGridMaxWidth] = useState<string | undefined>(undefined);
 
+  // The effective config for current game (accounts for mobile)
+  const [activeConfig, setActiveConfig] = useState<DifficultyConfig>(DIFFICULTY.easy);
+
+  // Detect mobile on mount + resize
+  useEffect(() => {
+    const check = () => setIsMobile(checkIsMobile());
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+
   // Load high scores
   useEffect(() => {
     setHighScores(getHighScores());
   }, []);
 
-  // ─── Compute optimal grid size to fill mobile viewport ───
+  // ─── Compute optimal grid size to fill viewport ───
   useEffect(() => {
     if (!gameStarted) return;
 
@@ -151,33 +171,30 @@ export function Game() {
       const container = gridRef.current?.parentElement;
       if (!container) return;
 
-      const { rows, cols } = DIFFICULTY[difficulty];
+      const { rows, cols } = activeConfig;
       const availH = container.clientHeight;
       const availW = container.clientWidth;
       const gap = window.innerWidth < 640 ? 8 : window.innerWidth < 1024 ? 10 : 12;
 
-      // Max card size from height constraint
       const maxCardFromH = (availH - gap * (rows - 1)) / rows;
-      // Max card size from width constraint
       const maxCardFromW = (availW - gap * (cols - 1)) / cols;
-      // Use the smaller one
       const cardSize = Math.floor(Math.min(maxCardFromH, maxCardFromW));
       const totalW = cardSize * cols + gap * (cols - 1);
 
       setGridMaxWidth(`${totalW}px`);
     };
 
-    // Compute after a short delay so DOM is ready
     const raf = requestAnimationFrame(compute);
     window.addEventListener('resize', compute);
-    // Also handle orientation change
-    window.addEventListener('orientationchange', () => setTimeout(compute, 100));
+    const orientHandler = () => setTimeout(compute, 100);
+    window.addEventListener('orientationchange', orientHandler);
 
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener('resize', compute);
+      window.removeEventListener('orientationchange', orientHandler);
     };
-  }, [gameStarted, difficulty]);
+  }, [gameStarted, activeConfig]);
 
   const handleToggleMute = useCallback(() => {
     const nowMuted = toggleMute();
@@ -186,8 +203,12 @@ export function Game() {
 
   const startNewGame = useCallback((diff: Difficulty, practice: boolean = false) => {
     playReset();
+    const mobile = checkIsMobile();
+    const config = getEffectiveDifficulty(diff, mobile);
     setDifficulty(diff);
-    setCards(generateCards(diff));
+    setIsMobile(mobile);
+    setActiveConfig(config);
+    setCards(generateCards(config));
     setFlippedCards([]);
     setMatchedIds(new Set());
     setMatchedPairs([]);
@@ -196,14 +217,14 @@ export function Game() {
     setIsLocked(false);
     setGameStarted(true);
     setPracticeMode(practice);
-    setGridMaxWidth(undefined); // Reset so it recalculates
+    setGridMaxWidth(undefined);
     timeRef.current = 0;
   }, []);
 
   // Win detection
   useEffect(() => {
     if (gameStarted && matchedIds.size > 0) {
-      const { pairs } = DIFFICULTY[difficulty];
+      const { pairs } = activeConfig;
       if (matchedIds.size === pairs * 2) {
         setGameWon(true);
         playWin();
@@ -213,7 +234,7 @@ export function Game() {
         }
       }
     }
-  }, [matchedIds, difficulty, gameStarted, moves, practiceMode]);
+  }, [matchedIds, activeConfig, difficulty, gameStarted, moves, practiceMode]);
 
   // Match logic
   useEffect(() => {
@@ -245,32 +266,26 @@ export function Game() {
   }, [flippedCards, cards, practiceMode]);
 
   const handleCardClick = useCallback((id: number) => {
-    // Use functional updates to read latest state without dependencies
     setIsLocked((locked) => {
       if (locked) return locked;
-
       setFlippedCards((prev) => {
         if (prev.length >= 2) return prev;
         if (prev.includes(id)) return prev;
-
         setMatchedIds((matched) => {
           if (matched.has(id)) return matched;
           playFlip();
           return matched;
         });
-
         return [...prev, id];
       });
-
       return locked;
     });
   }, []);
 
-  // Pre-compute flipped set for O(1) lookup
   const flippedSet = useMemo(() => new Set(flippedCards), [flippedCards]);
 
   const neon = NEON_COLORS[difficulty];
-  const { pairs, cols, rows, label } = DIFFICULTY[difficulty];
+  const { pairs, cols, label } = activeConfig;
 
   // =================== MENU SCREEN ===================
   if (!gameStarted) {
@@ -336,9 +351,10 @@ export function Game() {
               <span className="text-xs text-gray-500">Elegí la dificultad</span>
             </p>
 
-            {(Object.keys(DIFFICULTY) as Difficulty[]).map((diff, index) => {
+            {(['easy', 'medium', 'hard'] as Difficulty[]).map((diff, index) => {
               const diffNeon = NEON_COLORS[diff];
               const hs = highScores[diff];
+              const config = getEffectiveDifficulty(diff, isMobile);
               return (
                 <motion.button
                   key={diff}
@@ -355,10 +371,10 @@ export function Game() {
                 >
                   <div>
                     <span className="font-cyber text-sm" style={{ color: diffNeon.primary }}>
-                      {DIFFICULTY[diff].name}
+                      {config.name}
                     </span>
                     <span className="text-gray-500 text-xs ml-2">
-                      {DIFFICULTY[diff].label} &middot; {DIFFICULTY[diff].pairs} pares
+                      {config.label} &middot; {config.pairs} pares
                     </span>
                   </div>
                   {hs && (
@@ -381,16 +397,19 @@ export function Game() {
                 Modo práctica
               </p>
               <div className="flex gap-2">
-                {(Object.keys(DIFFICULTY) as Difficulty[]).map((diff) => (
-                  <button
-                    key={`practice-${diff}`}
-                    onClick={() => startNewGame(diff, true)}
-                    className="flex-1 py-2 px-2 rounded-lg bg-white/3 border border-white/10 text-gray-500
-                             hover:text-gray-300 hover:border-white/20 transition-colors text-xs"
-                  >
-                    {DIFFICULTY[diff].name}
-                  </button>
-                ))}
+                {(['easy', 'medium', 'hard'] as Difficulty[]).map((diff) => {
+                  const config = getEffectiveDifficulty(diff, isMobile);
+                  return (
+                    <button
+                      key={`practice-${diff}`}
+                      onClick={() => startNewGame(diff, true)}
+                      className="flex-1 py-2 px-2 rounded-lg bg-white/3 border border-white/10 text-gray-500
+                               hover:text-gray-300 hover:border-white/20 transition-colors text-xs"
+                    >
+                      {config.name}
+                    </button>
+                  );
+                })}
               </div>
               <p className="text-gray-700 text-center text-[9px] mt-1">
                 Sin timer ni puntaje
@@ -424,14 +443,13 @@ export function Game() {
                 <span className="text-white"> MEMO</span>
               </h1>
               <p className="text-gray-600 text-[10px]">
-                {DIFFICULTY[difficulty].name} &middot; {label} &middot; {pairs} pares
+                {activeConfig.name} &middot; {label} &middot; {pairs} pares
                 {practiceMode && <span className="text-yellow-600 ml-1">(Práctica)</span>}
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
-            {/* Stats */}
             {!practiceMode && (
               <>
                 <div className="text-center hidden sm:block">
@@ -455,7 +473,6 @@ export function Game() {
               </>
             )}
 
-            {/* Mobile timer */}
             {!practiceMode && (
               <div className="text-center sm:hidden">
                 <p className="text-sm font-bold font-cyber" style={{ color: neon.primary }}>
@@ -464,12 +481,10 @@ export function Game() {
               </div>
             )}
 
-            {/* Instagram */}
             <div className="hidden lg:block">
               <InstagramButton />
             </div>
 
-            {/* Mute toggle */}
             <button
               onClick={handleToggleMute}
               className="py-1.5 px-2 rounded-lg bg-white/5 border border-white/10 text-gray-400
@@ -491,11 +506,8 @@ export function Game() {
               )}
             </button>
 
-            {/* Menu button */}
             <button
-              onClick={() => {
-                setGameStarted(false);
-              }}
+              onClick={() => setGameStarted(false)}
               className="py-1.5 px-3 rounded-lg bg-white/5 border border-white/10 text-gray-400
                        hover:text-white hover:border-white/20 transition-colors text-xs"
             >
@@ -511,7 +523,7 @@ export function Game() {
           className="card-grid w-full"
           style={{
             gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
-            maxWidth: gridMaxWidth || (difficulty === 'hard' ? '100%' : difficulty === 'medium' ? '52rem' : '28rem'),
+            maxWidth: gridMaxWidth || '100%',
           }}
         >
           {cards.map((card) => (
@@ -528,12 +540,10 @@ export function Game() {
         </div>
       </main>
 
-      {/* Mobile footer with IG link */}
       <div className="lg:hidden flex justify-center mt-1 flex-shrink-0">
         <InstagramButton />
       </div>
 
-      {/* Victory Screen */}
       <VictoryScreen
         isVisible={gameWon}
         moves={moves}
