@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
 import { Katakana, Difficulty, NEON_COLORS } from '@/data/katakana';
@@ -12,21 +13,22 @@ interface CardProps {
   difficulty: Difficulty;
 }
 
-export function Card({ katakana, isFlipped, isMatched, onClick, difficulty }: CardProps) {
+const flipTransition = { duration: 0.4, ease: [0.4, 0, 0.2, 1] } as const;
+
+export const Card = memo(function Card({ katakana, isFlipped, isMatched, onClick, difficulty }: CardProps) {
   const neon = NEON_COLORS[difficulty];
+  const borderColor = `${neon.primary}40`;
 
   return (
-    <motion.div
+    <div
       className="relative w-full aspect-square cursor-pointer perspective-1000"
       onClick={onClick}
-      whileHover={isMatched ? undefined : { scale: 1.04 }}
-      whileTap={isMatched ? undefined : { scale: 0.96 }}
     >
       <motion.div
-        className="w-full h-full relative preserve-3d"
+        className="w-full h-full relative preserve-3d will-change-transform"
         initial={false}
         animate={{ rotateY: isFlipped ? 180 : 0 }}
-        transition={{ duration: 0.5, type: 'spring', stiffness: 260, damping: 20 }}
+        transition={flipTransition}
         style={{ transformStyle: 'preserve-3d' }}
       >
         {/* BACK (face down) */}
@@ -35,12 +37,8 @@ export function Card({ katakana, isFlipped, isMatched, onClick, difficulty }: Ca
           style={{ backfaceVisibility: 'hidden' }}
         >
           <div
-            className="w-full h-full relative card-washi"
-            style={{
-              border: `1.5px solid rgba(${difficulty === 'easy' ? '0,212,255' : difficulty === 'medium' ? '255,45,149' : '255,0,64'}, 0.25)`,
-              borderRadius: '0.75rem',
-              animation: `glow-pulse-${difficulty === 'easy' ? 'blue' : difficulty === 'medium' ? 'pink' : 'red'} 3s ease-in-out infinite`,
-            }}
+            className="w-full h-full relative card-washi rounded-xl"
+            style={{ border: `1.5px solid ${borderColor}` }}
           >
             {/* Corner sumi-e brackets */}
             <div className="absolute inset-0 opacity-40">
@@ -57,10 +55,7 @@ export function Card({ katakana, isFlipped, isMatched, onClick, difficulty }: Ca
                 alt="Nishi"
                 width={200}
                 height={200}
-                className="opacity-85 drop-shadow-lg w-full h-full object-contain"
-                style={{
-                  filter: `drop-shadow(0 0 12px ${neon.glow})`,
-                }}
+                className="opacity-85 w-full h-full object-contain"
                 unoptimized
               />
             </div>
@@ -79,9 +74,6 @@ export function Card({ katakana, isFlipped, isMatched, onClick, difficulty }: Ca
             className="w-full h-full flex flex-col items-center justify-center card-front-washi rounded-xl relative"
             style={{
               border: `2px solid ${isMatched ? 'rgba(0,255,128,0.5)' : neon.primary}`,
-              boxShadow: isMatched
-                ? '0 0 20px rgba(0,255,128,0.3), inset 0 0 20px rgba(0,255,128,0.1)'
-                : `0 0 15px ${neon.glow}`,
             }}
           >
             {/* Sumi-e ink wash effect in corners */}
@@ -93,7 +85,6 @@ export function Card({ katakana, isFlipped, isMatched, onClick, difficulty }: Ca
               style={{
                 fontSize: 'clamp(1.5rem, 5vw, 3.5rem)',
                 fontFamily: "'Noto Sans JP', sans-serif",
-                textShadow: isMatched ? '0 0 10px rgba(0,255,128,0.3)' : 'none',
               }}
             >
               {katakana.char}
@@ -107,6 +98,6 @@ export function Card({ katakana, isFlipped, isMatched, onClick, difficulty }: Ca
           </div>
         </div>
       </motion.div>
-    </motion.div>
+    </div>
   );
-}
+});

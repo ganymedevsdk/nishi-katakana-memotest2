@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useEffect, useCallback, useRef, memo, useMemo } from 'react';
+import { motion } from 'framer-motion';
 import Image from 'next/image';
 import { Card } from './Card';
 import { VictoryScreen } from './VictoryScreen';
@@ -9,7 +9,7 @@ import { InstagramButton } from './InstagramButton';
 import { KATAKANA, DIFFICULTY, Difficulty, Katakana, NEON_COLORS } from '@/data/katakana';
 import {
   playFlip, playMatch, playFail, playUnflip, playWin, playReset,
-  toggleMute, isMuted,
+  toggleMute,
 } from '@/lib/sounds';
 
 interface CardItem {
@@ -21,6 +21,40 @@ interface HighScore {
   moves: number;
   time: number;
 }
+
+// ─── Timer component (isolated re-renders) ───────────
+const Timer = memo(function Timer({
+  running,
+  onTimeRef,
+}: {
+  running: boolean;
+  onTimeRef: React.MutableRefObject<number>;
+}) {
+  const [display, setDisplay] = useState(0);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (running) {
+      onTimeRef.current = 0;
+      setDisplay(0);
+      intervalRef.current = setInterval(() => {
+        onTimeRef.current += 1;
+        setDisplay(onTimeRef.current);
+      }, 1000);
+    } else {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    }
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [running, onTimeRef]);
+
+  const mins = Math.floor(display / 60);
+  const secs = display % 60;
+  return <>{mins}:{secs.toString().padStart(2, '0')}</>;
+});
+
+// ─── Utilities ───────────────────────────────────────
 
 function shuffleArray<T>(array: T[]): T[] {
   const shuffled = [...array];
@@ -39,7 +73,6 @@ function generateCards(difficulty: Difficulty): CardItem[] {
   if (pairs <= KATAKANA.length) {
     selectedKatakana = shuffledKatakana.slice(0, pairs);
   } else {
-    // For hard mode with 30 pairs: use all 46 + random extras (won't happen with 30, but safety)
     selectedKatakana = [...shuffledKatakana];
     while (selectedKatakana.length < pairs) {
       const extra = shuffledKatakana[Math.floor(Math.random() * shuffledKatakana.length)];
@@ -82,81 +115,105 @@ function formatTime(seconds: number): string {
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
+// ─── Main Game ───────────────────────────────────────
+
 export function Game() {
   const [difficulty, setDifficulty] = useState<Difficulty>('easy');
   const [cards, setCards] = useState<CardItem[]>([]);
   const [flippedCards, setFlippedCards] = useState<number[]>([]);
-  const [matchedIds, setMatchedIds] = useState<number[]>([]);
+  const [matchedIds, setMatchedIds] = useState<Set<number>>(new Set());
   const [matchedPairs, setMatchedPairs] = useState<Katakana[]>([]);
   const [moves, setMoves] = useState(0);
-  const [time, setTime] = useState(0);
   const [gameWon, setGameWon] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
   const [gameStarted, setGameStarted] = useState(false);
   const [practiceMode, setPracticeMode] = useState(false);
-  const [highScores, setHighScores] = useState<Record<Difficulty, HighScore | null>>({
-    easy: null,
-    medium: null,
-    hard: null,
-  });
   const [muted, setMutedState] = useState(false);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [highScores, setHighScores] = useState<Record<Difficulty, HighScore | null>>({
+    easy: null, medium: null, hard: null,
+  });
+
+  const timeRef = useRef(0);
+  const timerRunning = gameStarted && !gameWon && !practiceMode;
+  const gridRef = useRef<HTMLDivElement>(null);
+  const [gridMaxWidth, setGridMaxWidth] = useState<string | undefined>(undefined);
+
+  // Load high scores
+  useEffect(() => {
+    setHighScores(getHighScores());
+  }, []);
+
+  // ─── Compute optimal grid size to fill mobile viewport ───
+  useEffect(() => {
+    if (!gameStarted) return;
+
+    const compute = () => {
+      const container = gridRef.current?.parentElement;
+      if (!container) return;
+
+      const { rows, cols } = DIFFICULTY[difficulty];
+      const availH = container.clientHeight;
+      const availW = container.clientWidth;
+      const gap = window.innerWidth < 640 ? 8 : window.innerWidth < 1024 ? 10 : 12;
+
+      // Max card size from height constraint
+      const maxCardFromH = (availH - gap * (rows - 1)) / rows;
+      // Max card size from width constraint
+      const maxCardFromW = (availW - gap * (cols - 1)) / cols;
+      // Use the smaller one
+      const cardSize = Math.floor(Math.min(maxCardFromH, maxCardFromW));
+      const totalW = cardSize * cols + gap * (cols - 1);
+
+      setGridMaxWidth(`${totalW}px`);
+    };
+
+    // Compute after a short delay so DOM is ready
+    const raf = requestAnimationFrame(compute);
+    window.addEventListener('resize', compute);
+    // Also handle orientation change
+    window.addEventListener('orientationchange', () => setTimeout(compute, 100));
+
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener('resize', compute);
+    };
+  }, [gameStarted, difficulty]);
 
   const handleToggleMute = useCallback(() => {
     const nowMuted = toggleMute();
     setMutedState(nowMuted);
   }, []);
 
-  // Load high scores on mount
-  useEffect(() => {
-    setHighScores(getHighScores());
-  }, []);
-
-  // Timer
-  useEffect(() => {
-    if (gameStarted && !gameWon && !practiceMode) {
-      timerRef.current = setInterval(() => {
-        setTime((prev) => prev + 1);
-      }, 1000);
-      return () => {
-        if (timerRef.current) clearInterval(timerRef.current);
-      };
-    }
-    if (gameWon && timerRef.current) {
-      clearInterval(timerRef.current);
-    }
-  }, [gameStarted, gameWon, practiceMode]);
-
   const startNewGame = useCallback((diff: Difficulty, practice: boolean = false) => {
     playReset();
     setDifficulty(diff);
     setCards(generateCards(diff));
     setFlippedCards([]);
-    setMatchedIds([]);
+    setMatchedIds(new Set());
     setMatchedPairs([]);
     setMoves(0);
-    setTime(0);
     setGameWon(false);
     setIsLocked(false);
     setGameStarted(true);
     setPracticeMode(practice);
-    if (timerRef.current) clearInterval(timerRef.current);
+    setGridMaxWidth(undefined); // Reset so it recalculates
+    timeRef.current = 0;
   }, []);
 
   // Win detection
   useEffect(() => {
-    if (gameStarted && matchedIds.length > 0) {
+    if (gameStarted && matchedIds.size > 0) {
       const { pairs } = DIFFICULTY[difficulty];
-      if (matchedIds.length === pairs * 2) {
+      if (matchedIds.size === pairs * 2) {
         setGameWon(true);
         playWin();
         if (!practiceMode) {
-          saveHighScore(difficulty, moves, time);
+          saveHighScore(difficulty, moves, timeRef.current);
           setHighScores(getHighScores());
         }
       }
     }
-  }, [matchedIds, difficulty, gameStarted, moves, time, practiceMode]);
+  }, [matchedIds, difficulty, gameStarted, moves, practiceMode]);
 
   // Match logic
   useEffect(() => {
@@ -170,7 +227,7 @@ export function Game() {
 
       if (firstCard?.katakana.romaji === secondCard?.katakana.romaji) {
         playMatch();
-        setMatchedIds((prev) => [...prev, first, second]);
+        setMatchedIds((prev) => new Set([...prev, first, second]));
         if (firstCard) {
           setMatchedPairs((prev) => [...prev, firstCard.katakana]);
         }
@@ -187,17 +244,33 @@ export function Game() {
     }
   }, [flippedCards, cards, practiceMode]);
 
-  const handleCardClick = (id: number) => {
-    if (isLocked) return;
-    if (flippedCards.includes(id)) return;
-    if (matchedIds.includes(id)) return;
-    if (flippedCards.length >= 2) return;
-    playFlip();
-    setFlippedCards((prev) => [...prev, id]);
-  };
+  const handleCardClick = useCallback((id: number) => {
+    // Use functional updates to read latest state without dependencies
+    setIsLocked((locked) => {
+      if (locked) return locked;
+
+      setFlippedCards((prev) => {
+        if (prev.length >= 2) return prev;
+        if (prev.includes(id)) return prev;
+
+        setMatchedIds((matched) => {
+          if (matched.has(id)) return matched;
+          playFlip();
+          return matched;
+        });
+
+        return [...prev, id];
+      });
+
+      return locked;
+    });
+  }, []);
+
+  // Pre-compute flipped set for O(1) lookup
+  const flippedSet = useMemo(() => new Set(flippedCards), [flippedCards]);
 
   const neon = NEON_COLORS[difficulty];
-  const { pairs, cols, label } = DIFFICULTY[difficulty];
+  const { pairs, cols, rows, label } = DIFFICULTY[difficulty];
 
   // =================== MENU SCREEN ===================
   if (!gameStarted) {
@@ -273,7 +346,6 @@ export function Game() {
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: index * 0.1 }}
-                  whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   className="w-full py-4 px-5 rounded-xl bg-white/5 text-white text-lg font-medium
                            transition-all duration-300 text-left flex items-center justify-between"
@@ -341,13 +413,9 @@ export function Game() {
 
   // =================== GAME SCREEN ===================
   return (
-    <div className="min-h-screen flex flex-col p-2 sm:p-3 md:p-4 lg:p-6">
+    <div className="h-[100dvh] flex flex-col p-2 sm:p-3 md:p-4 lg:p-6 overflow-hidden">
       {/* Header */}
-      <motion.header
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-7xl mx-auto mb-2 sm:mb-3 md:mb-4 flex-shrink-0"
-      >
+      <header className="w-full max-w-7xl mx-auto mb-1 sm:mb-2 md:mb-3 flex-shrink-0">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-3 min-w-0">
             <div className="min-w-0">
@@ -362,14 +430,14 @@ export function Game() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3 sm:gap-4 flex-shrink-0">
+          <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
             {/* Stats */}
             {!practiceMode && (
               <>
                 <div className="text-center hidden sm:block">
                   <p className="text-gray-600 text-[9px] uppercase tracking-wider">Tiempo</p>
                   <p className="text-base font-bold font-cyber" style={{ color: neon.primary }}>
-                    {formatTime(time)}
+                    <Timer running={timerRunning} onTimeRef={timeRef} />
                   </p>
                 </div>
                 <div className="text-center">
@@ -391,7 +459,7 @@ export function Game() {
             {!practiceMode && (
               <div className="text-center sm:hidden">
                 <p className="text-sm font-bold font-cyber" style={{ color: neon.primary }}>
-                  {formatTime(time)}
+                  <Timer running={timerRunning} onTimeRef={timeRef} />
                 </p>
               </div>
             )}
@@ -426,7 +494,6 @@ export function Game() {
             {/* Menu button */}
             <button
               onClick={() => {
-                if (timerRef.current) clearInterval(timerRef.current);
                 setGameStarted(false);
               }}
               className="py-1.5 px-3 rounded-lg bg-white/5 border border-white/10 text-gray-400
@@ -436,43 +503,33 @@ export function Game() {
             </button>
           </div>
         </div>
-      </motion.header>
+      </header>
 
       {/* Card Grid */}
-      <main className="flex-1 w-full max-w-7xl mx-auto flex items-start justify-center">
-        <motion.div
-          layout
+      <main ref={gridRef} className="flex-1 w-full max-w-7xl mx-auto flex items-center justify-center min-h-0 overflow-hidden">
+        <div
           className="card-grid w-full"
           style={{
             gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
-            maxWidth: difficulty === 'hard' ? '100%' : difficulty === 'medium' ? '52rem' : '28rem',
+            maxWidth: gridMaxWidth || (difficulty === 'hard' ? '100%' : difficulty === 'medium' ? '52rem' : '28rem'),
           }}
         >
-          <AnimatePresence>
-            {cards.map((card, index) => (
-              <motion.div
-                key={card.id}
-                layout
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                transition={{ delay: Math.min(index * 0.015, 0.8) }}
-              >
-                <Card
-                  katakana={card.katakana}
-                  isFlipped={flippedCards.includes(card.id) || matchedIds.includes(card.id)}
-                  isMatched={matchedIds.includes(card.id)}
-                  onClick={() => handleCardClick(card.id)}
-                  difficulty={difficulty}
-                />
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </motion.div>
+          {cards.map((card) => (
+            <div key={card.id}>
+              <Card
+                katakana={card.katakana}
+                isFlipped={flippedSet.has(card.id) || matchedIds.has(card.id)}
+                isMatched={matchedIds.has(card.id)}
+                onClick={() => handleCardClick(card.id)}
+                difficulty={difficulty}
+              />
+            </div>
+          ))}
+        </div>
       </main>
 
       {/* Mobile footer with IG link */}
-      <div className="lg:hidden flex justify-center mt-2 flex-shrink-0">
+      <div className="lg:hidden flex justify-center mt-1 flex-shrink-0">
         <InstagramButton />
       </div>
 
@@ -480,7 +537,7 @@ export function Game() {
       <VictoryScreen
         isVisible={gameWon}
         moves={moves}
-        time={time}
+        time={timeRef.current}
         matchedPairs={matchedPairs}
         difficulty={difficulty}
         bestScore={highScores[difficulty]}
