@@ -12,11 +12,20 @@ interface CardProps {
   isFailing: boolean;
   onClick: () => void;
   difficulty: Difficulty;
+  isCompact?: boolean;
 }
 
 const flipTransition = { duration: 0.45, ease: [0.4, 0, 0.2, 1] } as const;
 
-export const Card = memo(function Card({ katakana, isFlipped, isMatched, isFailing, onClick, difficulty }: CardProps) {
+export const Card = memo(function Card({
+  katakana,
+  isFlipped,
+  isMatched,
+  isFailing,
+  onClick,
+  difficulty,
+  isCompact = false,
+}: CardProps) {
   const colors = NEON_COLORS[difficulty];
   const wrapperRef = useRef<HTMLDivElement>(null);
   const prevMatched = useRef(isMatched);
@@ -213,11 +222,13 @@ export const Card = memo(function Card({ katakana, isFlipped, isMatched, isFaili
               }}
             />
 
-            {/* [ukiyo-e] Main katakana character — even larger for legibility */}
+            {/* [ukiyo-e] Main katakana character — responsive size */}
             <span
               className="leading-none select-none"
               style={{
-                fontSize: 'clamp(2.4rem, 10vw, 4.6rem)',
+                fontSize: isCompact
+                  ? 'clamp(1.1rem, 4vw, 1.8rem)'
+                  : 'clamp(2.2rem, 9vw, 4.2rem)',
                 fontFamily: 'var(--font-serif-jp)',
                 fontWeight: 700,
                 color: 'var(--color-sumi-black)',
@@ -226,14 +237,17 @@ export const Card = memo(function Card({ katakana, isFlipped, isMatched, isFaili
               {katakana.char}
             </span>
 
-            {/* Romaji below — slightly larger again */}
+            {/* Romaji below */}
             <span
-              className="mt-1 select-none"
+              className="select-none"
               style={{
-                fontSize: 'clamp(0.8rem, 2.6vw, 1.1rem)',
+                fontSize: isCompact
+                  ? 'clamp(0.45rem, 1.4vw, 0.65rem)'
+                  : 'clamp(0.75rem, 2.3vw, 1.05rem)',
                 fontFamily: 'var(--font-sans-jp)',
                 fontWeight: 500,
                 color: 'var(--color-sepia)',
+                marginTop: isCompact ? '1px' : '4px',
               }}
             >
               {katakana.romaji}

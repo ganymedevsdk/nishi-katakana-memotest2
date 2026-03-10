@@ -178,7 +178,10 @@ export function Game() {
       const { rows, cols } = activeConfig;
       const availH = container.clientHeight;
       const availW = container.clientWidth;
-      const gap = window.innerWidth < 640 ? 6 : window.innerWidth < 1024 ? 10 : 12;
+      const isMobileView = window.innerWidth < 640;
+      const gap = isMobileView
+        ? (activeConfig.cols >= 6 ? 4 : 6)
+        : window.innerWidth < 1024 ? 10 : 12;
 
       const maxCardFromH = (availH - gap * (rows - 1)) / rows;
       const maxCardFromW = (availW - gap * (cols - 1)) / cols;
@@ -448,11 +451,13 @@ export function Game() {
     );
   }
 
+  const isMobileHard = isMobile && difficulty === 'hard';
+
   // =================== GAME SCREEN ===================
   return (
-    <div className="h-[100dvh] flex flex-col p-2 sm:p-3 md:p-4 lg:p-5 overflow-hidden">
+    <div className={`h-[100dvh] flex flex-col overflow-hidden ${isMobileHard ? 'p-1' : 'p-2 sm:p-3 md:p-4 lg:p-5'}`}>
       {/* [ukiyo-e] Game header */}
-      <header className="w-full max-w-7xl mx-auto mb-1 sm:mb-2 flex-shrink-0">
+      <header className={`w-full max-w-7xl mx-auto flex-shrink-0 ${isMobileHard ? 'mb-0.5' : 'mb-1 sm:mb-2'}`}>
         <div className="flex items-center justify-between gap-2">
           {/* Left: title + info */}
           <div className="flex items-center gap-2 min-w-0">
@@ -553,12 +558,16 @@ export function Game() {
       </header>
 
       {/* Card Grid */}
-      <main ref={gridRef} className="flex-1 w-full max-w-7xl mx-auto flex items-center justify-center min-h-0 overflow-hidden">
+      <main
+        ref={gridRef}
+        className={`flex-1 w-full max-w-7xl mx-auto flex justify-center min-h-0 overflow-hidden ${isMobileHard ? 'items-center' : 'items-start md:items-center'}`}
+      >
         <div
           className="card-grid w-full"
           style={{
             gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
             maxWidth: gridMaxWidth || '100%',
+            ...(isMobileHard ? { gap: '4px' } : {}),
           }}
         >
           {cards.map((card) => (
@@ -570,18 +579,21 @@ export function Game() {
               isFailing={failingIds.has(card.id)}
               onClick={() => handleCardClick(card.id)}
               difficulty={difficulty}
+              isCompact={isMobile && difficulty === 'hard'}
             />
           ))}
         </div>
       </main>
 
-      {/* [ukiyo-e] Bottom area: IG + seigaiha footer */}
-      <div className="flex-shrink-0 mt-1">
-        <div className="lg:hidden flex justify-center mb-1">
-          <InstagramButton />
+      {/* [ukiyo-e] Bottom area: IG + seigaiha footer (hidden on mobile hard for max grid space) */}
+      {!isMobileHard && (
+        <div className="flex-shrink-0 mt-1">
+          <div className="lg:hidden flex justify-center mb-1">
+            <InstagramButton />
+          </div>
+          <div className="seigaiha-border-sm" />
         </div>
-        <div className="seigaiha-border-sm" />
-      </div>
+      )}
 
       <VictoryScreen
         isVisible={gameWon}
