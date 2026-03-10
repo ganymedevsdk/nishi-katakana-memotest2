@@ -33,7 +33,7 @@ export function VictoryScreen({
   onChangeDifficulty,
 }: VictoryScreenProps) {
   const hasConfettiFired = useRef(false);
-  const neon = NEON_COLORS[difficulty];
+  const colors = NEON_COLORS[difficulty];
   const { pairs } = DIFFICULTY[difficulty];
 
   const perfectScore = pairs;
@@ -42,7 +42,7 @@ export function VictoryScreen({
   const fireConfetti = useCallback(() => {
     const duration = 3000;
     const end = Date.now() + duration;
-    const colors = ['#00d4ff', '#ff2d95', '#ff0033', '#b829dd', '#00ff80'];
+    const confettiColors = ['#3d8b83', '#C0392B', '#C9A84C', '#1B4F72', '#4A6741', '#F5EDD6'];
 
     const frame = () => {
       confetti({
@@ -50,14 +50,14 @@ export function VictoryScreen({
         angle: 60,
         spread: 55,
         origin: { x: 0, y: 0.7 },
-        colors,
+        colors: confettiColors,
       });
       confetti({
         particleCount: 3,
         angle: 120,
         spread: 55,
         origin: { x: 1, y: 0.7 },
-        colors,
+        colors: confettiColors,
       });
 
       if (Date.now() < end) {
@@ -71,7 +71,7 @@ export function VictoryScreen({
         particleCount: 100,
         spread: 100,
         origin: { y: 0.6 },
-        colors,
+        colors: confettiColors,
       });
     }, 500);
   }, []);
@@ -93,63 +93,71 @@ export function VictoryScreen({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto"
+          className="fixed inset-0 flex items-center justify-center p-4 z-50 overflow-y-auto"
+          style={{ background: 'rgba(26, 16, 8, 0.7)' }}
         >
           <motion.div
-            initial={{ scale: 0.8, y: 40 }}
+            initial={{ scale: 0.85, y: 30 }}
             animate={{ scale: 1, y: 0 }}
-            exit={{ scale: 0.8, y: 40 }}
-            transition={{ type: 'spring', stiffness: 200, damping: 20 }}
-            className="relative w-full max-w-lg rounded-2xl p-6 md:p-8 my-4"
+            exit={{ scale: 0.85, y: 30 }}
+            transition={{ type: 'spring', stiffness: 220, damping: 22 }}
+            className="relative w-full max-w-lg my-4 p-5 md:p-7"
             style={{
-              background: 'linear-gradient(135deg, #111 0%, #0a0a0a 100%)',
-              border: `1px solid ${neon.primary}40`,
-              boxShadow: `0 0 40px ${neon.glow}, 0 0 80px ${neon.glow}`,
+              background: 'var(--color-washi-cream)',
+              border: '2.5px solid var(--color-sumi-black)',
+              borderRadius: '3px',
+              boxShadow: '5px 5px 0 var(--color-sumi-black), inset 0 0 0 3px var(--color-ochre)',
             }}
           >
-            {/* Victory title */}
+            {/* [ukiyo-e] Victory title with seal */}
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
-              transition={{ delay: 0.2, type: 'spring' }}
-              className="text-center mb-6"
+              transition={{ delay: 0.15, type: 'spring' }}
+              className="text-center mb-5"
             >
+              {/* Small seal */}
+              <div className="mx-auto mb-2 seal-badge" style={{ width: 48, height: 48 }}>
+                <span style={{ fontFamily: 'var(--font-serif-jp)', fontSize: '1.4rem', fontWeight: 700, color: 'var(--color-vermillion)' }}>
+                  勝
+                </span>
+              </div>
               <h2
-                className="text-3xl md:text-4xl font-bold font-cyber mb-2"
-                style={{
-                  color: neon.primary,
-                  textShadow: `0 0 20px ${neon.glow}, 0 0 40px ${neon.glow}`,
-                }}
+                className="text-2xl md:text-3xl font-ukiyo mb-1"
+                style={{ color: colors.primary, fontWeight: 700 }}
               >
                 勝利!
               </h2>
-              <p className="text-xl text-white font-bold">
+              <p className="text-lg font-bold" style={{ color: 'var(--color-sumi-black)' }}>
                 ¡Dominaste los katakana!
               </p>
-              <p className="text-gray-400 text-sm mt-1">お疲れ様でした!</p>
+              <p className="text-xs mt-1" style={{ color: 'var(--color-sepia)' }}>お疲れ様でした!</p>
             </motion.div>
 
-            {/* Stats grid */}
+            {/* [ukiyo-e] Stats grid */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="grid grid-cols-3 gap-3 mb-6"
+              transition={{ delay: 0.25 }}
+              className="grid grid-cols-3 gap-2 mb-5"
             >
-              <div className="text-center p-3 rounded-lg bg-white/5 border border-white/10">
-                <p className="text-gray-500 text-[10px] uppercase tracking-wider mb-1">Tiempo</p>
-                <p className="text-xl font-bold text-white font-cyber">{formatTime(time)}</p>
-              </div>
-              <div className="text-center p-3 rounded-lg bg-white/5 border border-white/10">
-                <p className="text-gray-500 text-[10px] uppercase tracking-wider mb-1">Intentos</p>
-                <p className="text-xl font-bold text-white font-cyber">{moves}</p>
-              </div>
-              <div className="text-center p-3 rounded-lg bg-white/5 border border-white/10">
-                <p className="text-gray-500 text-[10px] uppercase tracking-wider mb-1">Eficiencia</p>
-                <p className="text-xl font-bold font-cyber" style={{ color: neon.primary }}>
-                  {efficiency}%
-                </p>
-              </div>
+              {[
+                { label: '時間', value: formatTime(time) },
+                { label: '回数', value: String(moves) },
+                { label: '効率', value: `${efficiency}%`, accent: true },
+              ].map((stat) => (
+                <div key={stat.label} className="text-center stat-pill py-2.5">
+                  <p className="text-[9px] uppercase tracking-wider mb-0.5" style={{ color: 'var(--color-sepia)' }}>
+                    {stat.label}
+                  </p>
+                  <p
+                    className="text-lg font-bold font-ukiyo"
+                    style={{ color: stat.accent ? colors.primary : 'var(--color-sumi-black)', fontWeight: 700 }}
+                  >
+                    {stat.value}
+                  </p>
+                </div>
+              ))}
             </motion.div>
 
             {/* Best score */}
@@ -157,12 +165,13 @@ export function VictoryScreen({
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: 0.4 }}
-                className="text-center mb-4 text-xs text-gray-500"
+                transition={{ delay: 0.35 }}
+                className="text-center mb-4 text-xs"
+                style={{ color: 'var(--color-sepia)' }}
               >
                 Mejor: {bestScore.moves} intentos en {formatTime(bestScore.time)}
                 {moves <= bestScore.moves && time <= bestScore.time && (
-                  <span className="ml-2 text-green-400 font-bold">¡Nuevo récord!</span>
+                  <span className="ml-2 font-bold" style={{ color: 'var(--color-moss-green)' }}>¡Nuevo récord!</span>
                 )}
               </motion.div>
             )}
@@ -171,16 +180,16 @@ export function VictoryScreen({
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
-              className="mb-6"
+              transition={{ delay: 0.4 }}
+              className="mb-5"
             >
-              <p className="text-gray-400 text-xs uppercase tracking-wider mb-3 text-center">
-                Pares descubiertos ({matchedPairs.length})
+              <p className="text-[10px] uppercase tracking-wider mb-2 text-center" style={{ color: 'var(--color-sepia)' }}>
+                発見したペア ({matchedPairs.length})
               </p>
               <div
-                className="grid gap-1.5 max-h-40 overflow-y-auto pr-1"
+                className="grid gap-1.5 max-h-36 overflow-y-auto pr-1"
                 style={{
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(70px, 1fr))',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(60px, 1fr))',
                 }}
               >
                 {matchedPairs.map((k, i) => (
@@ -188,38 +197,37 @@ export function VictoryScreen({
                     key={`${k.romaji}-${i}`}
                     initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.6 + i * 0.03 }}
-                    className="text-center p-1.5 rounded-md bg-white/5 border border-white/10"
+                    transition={{ delay: 0.5 + i * 0.025 }}
+                    className="text-center p-1 stat-pill"
                   >
-                    <span className="text-lg font-bold text-white">{k.char}</span>
-                    <p className="text-[10px] text-gray-400">{k.romaji}</p>
+                    <span className="text-base font-bold font-ukiyo" style={{ color: 'var(--color-sumi-black)', fontWeight: 700 }}>
+                      {k.char}
+                    </span>
+                    <p className="text-[9px]" style={{ color: 'var(--color-sepia)' }}>{k.romaji}</p>
                   </motion.div>
                 ))}
               </div>
             </motion.div>
 
+            {/* Seigaiha divider */}
+            <div className="seigaiha-border-sm mb-4" />
+
             {/* Action buttons */}
             <div className="flex flex-col gap-2">
               <motion.button
-                whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={onPlayAgain}
-                className="w-full py-3 px-6 rounded-xl text-white font-bold font-cyber text-sm transition-all"
-                style={{
-                  background: `linear-gradient(135deg, ${neon.primary}, ${neon.primary}cc)`,
-                  boxShadow: `0 0 20px ${neon.glow}`,
-                }}
+                className="w-full py-3 px-5 font-bold font-ukiyo text-sm btn-woodblock btn-primary"
               >
-                Jugar de nuevo
+                もう一回 &middot; Jugar de nuevo
               </motion.button>
               <motion.button
-                whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={onChangeDifficulty}
-                className="w-full py-3 px-6 rounded-xl border border-gray-700 text-gray-300 font-medium text-sm
-                         hover:border-gray-500 hover:text-white transition-colors"
+                className="w-full py-3 px-5 font-medium text-sm btn-woodblock"
+                style={{ color: 'var(--color-sepia)' }}
               >
-                Cambiar nivel
+                レベル変更 &middot; Cambiar nivel
               </motion.button>
             </div>
           </motion.div>

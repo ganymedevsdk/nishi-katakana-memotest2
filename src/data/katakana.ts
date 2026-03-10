@@ -63,23 +63,29 @@ export const DIFFICULTY: Record<string, DifficultyConfig> = {
   hard: { pairs: 30, name: 'Difícil', cols: 10, rows: 6, label: '10×6' },
 };
 
-// Mobile overrides for hard mode (screen < 640px)
+// Mobile overrides (screen < 640px) — vertical layouts for portrait
+export const DIFFICULTY_MOBILE_MEDIUM: DifficultyConfig = {
+  pairs: 12, name: 'Medio', cols: 4, rows: 6, label: '4×6',
+};
+
 export const DIFFICULTY_MOBILE_HARD: DifficultyConfig = {
-  pairs: 12, name: 'Difícil', cols: 6, rows: 4, label: '6×4',
+  pairs: 18, name: 'Difícil', cols: 6, rows: 6, label: '6×6',
 };
 
 export type Difficulty = 'easy' | 'medium' | 'hard';
 
+/* [ukiyo-e] Palette per difficulty — replaces neon colors */
 export const NEON_COLORS: Record<Difficulty, { primary: string; glow: string }> = {
-  easy: { primary: '#00d4ff', glow: 'rgba(0, 212, 255, 0.6)' },
-  medium: { primary: '#ff2d95', glow: 'rgba(255, 45, 149, 0.6)' },
-  hard: { primary: '#ff0040', glow: 'rgba(255, 0, 64, 0.6)' },
+  easy: { primary: '#3d8b83', glow: 'rgba(61, 139, 131, 0.4)' },     /* Nishi Teal */
+  medium: { primary: '#1B4F72', glow: 'rgba(27, 79, 114, 0.4)' },    /* Hiroshige Blue */
+  hard: { primary: '#C0392B', glow: 'rgba(192, 57, 43, 0.4)' },      /* Vermillion */
 };
 
 /** Returns the effective difficulty config, accounting for mobile screen size */
 export function getEffectiveDifficulty(difficulty: Difficulty, isMobile: boolean): DifficultyConfig {
-  if (difficulty === 'hard' && isMobile) {
-    return DIFFICULTY_MOBILE_HARD;
+  if (isMobile) {
+    if (difficulty === 'medium') return DIFFICULTY_MOBILE_MEDIUM;
+    if (difficulty === 'hard') return DIFFICULTY_MOBILE_HARD;
   }
   return DIFFICULTY[difficulty];
 }

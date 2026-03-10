@@ -123,6 +123,13 @@ function checkIsMobile(): boolean {
   return window.innerWidth < 640;
 }
 
+// ─── Difficulty label colors ─────────────────────────
+const DIFF_LABELS: Record<Difficulty, { jp: string; color: string }> = {
+  easy:   { jp: '初級', color: 'var(--color-nishi-teal)' },
+  medium: { jp: '中級', color: 'var(--color-hiroshige-blue)' },
+  hard:   { jp: '上級', color: 'var(--color-vermillion)' },
+};
+
 // ─── Main Game ───────────────────────────────────────
 
 export function Game() {
@@ -132,6 +139,7 @@ export function Game() {
   const [flippedCards, setFlippedCards] = useState<number[]>([]);
   const [matchedIds, setMatchedIds] = useState<Set<number>>(new Set());
   const [matchedPairs, setMatchedPairs] = useState<Katakana[]>([]);
+  const [failingIds, setFailingIds] = useState<Set<number>>(new Set());
   const [moves, setMoves] = useState(0);
   const [gameWon, setGameWon] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
@@ -147,10 +155,8 @@ export function Game() {
   const gridRef = useRef<HTMLDivElement>(null);
   const [gridMaxWidth, setGridMaxWidth] = useState<string | undefined>(undefined);
 
-  // The effective config for current game (accounts for mobile)
   const [activeConfig, setActiveConfig] = useState<DifficultyConfig>(DIFFICULTY.easy);
 
-  // Detect mobile on mount + resize
   useEffect(() => {
     const check = () => setIsMobile(checkIsMobile());
     check();
@@ -158,23 +164,21 @@ export function Game() {
     return () => window.removeEventListener('resize', check);
   }, []);
 
-  // Load high scores
   useEffect(() => {
     setHighScores(getHighScores());
   }, []);
 
-  // ─── Compute optimal grid size to fill viewport ───
   useEffect(() => {
     if (!gameStarted) return;
 
     const compute = () => {
-      const container = gridRef.current?.parentElement;
+      const container = gridRef.current;
       if (!container) return;
 
       const { rows, cols } = activeConfig;
       const availH = container.clientHeight;
       const availW = container.clientWidth;
-      const gap = window.innerWidth < 640 ? 8 : window.innerWidth < 1024 ? 10 : 12;
+      const gap = window.innerWidth < 640 ? 6 : window.innerWidth < 1024 ? 10 : 12;
 
       const maxCardFromH = (availH - gap * (rows - 1)) / rows;
       const maxCardFromW = (availW - gap * (cols - 1)) / cols;
@@ -212,6 +216,7 @@ export function Game() {
     setFlippedCards([]);
     setMatchedIds(new Set());
     setMatchedPairs([]);
+    setFailingIds(new Set());
     setMoves(0);
     setGameWon(false);
     setIsLocked(false);
@@ -236,7 +241,7 @@ export function Game() {
     }
   }, [matchedIds, activeConfig, difficulty, gameStarted, moves, practiceMode]);
 
-  // Match logic
+  // Match logic with fail animation
   useEffect(() => {
     if (flippedCards.length === 2) {
       setIsLocked(true);
@@ -256,6 +261,11 @@ export function Game() {
         setIsLocked(false);
       } else {
         playFail();
+        // [ukiyo-e] Trigger fail shake animation
+        setFailingIds(new Set([first, second]));
+        setTimeout(() => {
+          setFailingIds(new Set());
+        }, 400);
         setTimeout(() => {
           playUnflip();
           setFlippedCards([]);
@@ -284,75 +294,101 @@ export function Game() {
 
   const flippedSet = useMemo(() => new Set(flippedCards), [flippedCards]);
 
-  const neon = NEON_COLORS[difficulty];
+  const colors = NEON_COLORS[difficulty];
   const { pairs, cols, label } = activeConfig;
 
   // =================== MENU SCREEN ===================
   if (!gameStarted) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 relative">
+      <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="max-w-md w-full relative z-10"
         >
+          {/* [ukiyo-e] Header with circular seal badge + mountain */}
           <motion.div
             initial={{ scale: 0.9 }}
             animate={{ scale: 1 }}
             transition={{ duration: 0.6 }}
-            className="text-center mb-10"
+            className="text-center mb-8 relative"
           >
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="mb-4"
-            >
-              <Image
-                src="/nishi-logo-card.png"
-                alt="Nishi Nihongo Gakko"
-                width={80}
-                height={80}
-                className="mx-auto mb-4"
-                style={{ filter: 'drop-shadow(0 0 15px rgba(0, 212, 255, 0.4))' }}
-                unoptimized
-              />
-            </motion.div>
+            {/* [ukiyo-e] Mountain silhouette behind logo */}
+            <div className="relative flex flex-col items-center">
+              <svg className="mountain-silhouette" viewBox="0 0 200 80" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style={{ position: 'relative', opacity: 0.08, marginBottom: '-30px' }}>
+                <path d="M0 80 L40 30 L55 45 L80 15 L100 5 L120 15 L145 45 L160 30 L200 80 Z" fill="var(--color-sumi-black)" />
+              </svg>
 
-            <h1 className="text-4xl md:text-5xl font-bold font-cyber tracking-wider mb-2">
-              <span
-                className="block"
-                style={{
-                  color: '#ff0033',
-                  textShadow: '0 0 20px rgba(255, 0, 51, 0.5), 0 0 40px rgba(255, 0, 51, 0.3)',
-                }}
+              {/* [ukiyo-e] Circular seal badge with 西 */}
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.15 }}
+                className="seal-badge mb-3 relative z-10"
               >
-                KATAKANA
-              </span>
+                <span
+                  style={{
+                    fontFamily: 'var(--font-serif-jp)',
+                    fontSize: '1.8rem',
+                    fontWeight: 700,
+                    color: 'var(--color-sumi-black)',
+                    lineHeight: 1,
+                  }}
+                >
+                  西
+                </span>
+              </motion.div>
+
+              {/* Nishi logo */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.25 }}
+                className="mb-3"
+              >
+                <Image
+                  src="/nishi-logo-card.png"
+                  alt="Nishi Nihongo Gakko"
+                  width={70}
+                  height={70}
+                  className="mx-auto"
+                  unoptimized
+                />
+              </motion.div>
+            </div>
+
+            {/* [ukiyo-e] Title */}
+            <h1 className="font-ukiyo mb-1" style={{ letterSpacing: '0.1em' }}>
               <span
                 className="block text-3xl md:text-4xl"
-                style={{
-                  color: '#00d4ff',
-                  textShadow: '0 0 20px rgba(0, 212, 255, 0.5), 0 0 40px rgba(0, 212, 255, 0.3)',
-                }}
+                style={{ color: 'var(--color-sumi-black)', fontWeight: 700 }}
+              >
+                カタカナ
+              </span>
+              <span
+                className="block text-xl md:text-2xl mt-0.5"
+                style={{ color: 'var(--color-nishi-teal)', fontWeight: 400 }}
               >
                 MEMOTEST
               </span>
             </h1>
-            <p className="text-gray-400 text-sm mt-2">
+            <p style={{ color: 'var(--color-sepia)' }} className="text-xs mt-1">
               西日本語学園 &middot; Nishi Nihongo Gakko
             </p>
           </motion.div>
 
-          <div className="space-y-4">
-            <p className="text-gray-300 text-center text-base mb-6">
-              難易度を選んでください
+          {/* [ukiyo-e] Seigaiha divider */}
+          <div className="seigaiha-border-sm mb-6" />
+
+          <div className="space-y-3">
+            <p className="text-center text-sm mb-4" style={{ color: 'var(--color-sumi-black)' }}>
+              <span className="font-ukiyo">難易度を選んでください</span>
               <br />
-              <span className="text-xs text-gray-500">Elegí la dificultad</span>
+              <span className="text-xs" style={{ color: 'var(--color-sepia)' }}>Elegí la dificultad</span>
             </p>
 
             {(['easy', 'medium', 'hard'] as Difficulty[]).map((diff, index) => {
-              const diffNeon = NEON_COLORS[diff];
+              const diffLabel = DIFF_LABELS[diff];
               const hs = highScores[diff];
               const config = getEffectiveDifficulty(diff, isMobile);
               return (
@@ -361,57 +397,61 @@ export function Game() {
                   onClick={() => startNewGame(diff)}
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.1 }}
+                  transition={{ delay: index * 0.08 }}
                   whileTap={{ scale: 0.98 }}
-                  className="w-full py-4 px-5 rounded-xl bg-white/5 text-white text-lg font-medium
-                           transition-all duration-300 text-left flex items-center justify-between"
-                  style={{
-                    border: `1.5px solid ${diffNeon.primary}40`,
-                  }}
+                  className="w-full py-3.5 px-4 text-left flex items-center justify-between btn-woodblock"
                 >
                   <div>
-                    <span className="font-cyber text-sm" style={{ color: diffNeon.primary }}>
-                      {config.name}
+                    <span className="font-ukiyo text-sm" style={{ color: diffLabel.color, fontWeight: 700 }}>
+                      {diffLabel.jp} &middot; {config.name}
                     </span>
-                    <span className="text-gray-500 text-xs ml-2">
+                    <span className="text-[11px] ml-2" style={{ color: 'var(--color-sepia)' }}>
                       {config.label} &middot; {config.pairs} pares
                     </span>
                   </div>
                   {hs && (
-                    <span className="text-gray-600 text-[10px]">
-                      Mejor: {hs.moves}mov / {formatTime(hs.time)}
+                    <span className="text-[10px]" style={{ color: 'var(--color-sepia)' }}>
+                      {hs.moves}mov / {formatTime(hs.time)}
                     </span>
                   )}
                 </motion.button>
               );
             })}
 
-            {/* Practice mode button */}
+            {/* Practice mode */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 0.4 }}
-              className="pt-2"
+              transition={{ delay: 0.35 }}
+              className="pt-3"
             >
-              <p className="text-gray-600 text-center text-[10px] uppercase tracking-wider mb-2">
-                Modo práctica
+              <p className="text-center text-[10px] uppercase tracking-wider mb-2" style={{ color: 'var(--color-sepia)' }}>
+                練習モード &middot; Modo práctica
               </p>
               <div className="flex gap-2">
                 {(['easy', 'medium', 'hard'] as Difficulty[]).map((diff) => {
                   const config = getEffectiveDifficulty(diff, isMobile);
+                  const diffLabel = DIFF_LABELS[diff];
                   return (
                     <button
                       key={`practice-${diff}`}
                       onClick={() => startNewGame(diff, true)}
-                      className="flex-1 py-2 px-2 rounded-lg bg-white/3 border border-white/10 text-gray-500
-                               hover:text-gray-300 hover:border-white/20 transition-colors text-xs"
+                      className="flex-1 py-2 px-2 transition-colors text-xs"
+                      style={{
+                        background: 'var(--color-washi-warm)',
+                        border: '1.5px solid var(--color-sumi-black)',
+                        borderRadius: '3px',
+                        boxShadow: '2px 2px 0 var(--color-sumi-black)',
+                        color: diffLabel.color,
+                        fontWeight: 500,
+                      }}
                     >
                       {config.name}
                     </button>
                   );
                 })}
               </div>
-              <p className="text-gray-700 text-center text-[9px] mt-1">
+              <p className="text-center text-[9px] mt-1.5" style={{ color: 'var(--color-sepia)' }}>
                 Sin timer ni puntaje
               </p>
             </motion.div>
@@ -420,11 +460,14 @@ export function Game() {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.6 }}
-            className="mt-8 flex justify-center"
+            transition={{ delay: 0.5 }}
+            className="mt-6 flex justify-center"
           >
             <InstagramButton />
           </motion.div>
+
+          {/* [ukiyo-e] Bottom seigaiha wave footer */}
+          <div className="seigaiha-border mt-6" />
         </motion.div>
       </div>
     );
@@ -432,50 +475,64 @@ export function Game() {
 
   // =================== GAME SCREEN ===================
   return (
-    <div className="h-[100dvh] flex flex-col p-2 sm:p-3 md:p-4 lg:p-6 overflow-hidden">
-      {/* Header */}
-      <header className="w-full max-w-7xl mx-auto mb-1 sm:mb-2 md:mb-3 flex-shrink-0">
+    <div className="h-[100dvh] flex flex-col p-2 sm:p-3 md:p-4 lg:p-5 overflow-hidden">
+      {/* [ukiyo-e] Game header */}
+      <header className="w-full max-w-7xl mx-auto mb-1 sm:mb-2 flex-shrink-0">
         <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-3 min-w-0">
+          {/* Left: title + info */}
+          <div className="flex items-center gap-2 min-w-0">
+            {/* Small seal badge */}
+            <div
+              className="hidden sm:flex items-center justify-center flex-shrink-0"
+              style={{
+                width: 32, height: 32, borderRadius: '50%',
+                border: '1.5px solid var(--color-sumi-black)',
+                background: 'var(--color-washi-cream)',
+              }}
+            >
+              <span style={{ fontFamily: 'var(--font-serif-jp)', fontSize: '0.9rem', fontWeight: 700, color: 'var(--color-sumi-black)' }}>西</span>
+            </div>
             <div className="min-w-0">
-              <h1 className="text-base md:text-xl font-bold font-cyber truncate">
-                <span style={{ color: '#ff0033' }}>KATAKANA</span>
-                <span className="text-white"> MEMO</span>
+              <h1 className="text-sm md:text-lg font-bold font-ukiyo truncate" style={{ fontWeight: 700 }}>
+                <span style={{ color: 'var(--color-sumi-black)' }}>カタカナ</span>
+                <span style={{ color: 'var(--color-nishi-teal)' }}> MEMO</span>
               </h1>
-              <p className="text-gray-600 text-[10px]">
+              <p className="text-[9px] md:text-[10px]" style={{ color: 'var(--color-sepia)' }}>
                 {activeConfig.name} &middot; {label} &middot; {pairs} pares
-                {practiceMode && <span className="text-yellow-600 ml-1">(Práctica)</span>}
+                {practiceMode && <span style={{ color: 'var(--color-ochre)' }} className="ml-1">(練習)</span>}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
+          {/* Right: stats + controls */}
+          <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
             {!practiceMode && (
               <>
-                <div className="text-center hidden sm:block">
-                  <p className="text-gray-600 text-[9px] uppercase tracking-wider">Tiempo</p>
-                  <p className="text-base font-bold font-cyber" style={{ color: neon.primary }}>
+                <div className="text-center stat-pill hidden sm:block">
+                  <p className="text-[8px] uppercase tracking-wider" style={{ color: 'var(--color-sepia)' }}>時間</p>
+                  <p className="text-sm font-bold font-ukiyo" style={{ color: colors.primary, fontWeight: 700 }}>
                     <Timer running={timerRunning} onTimeRef={timeRef} />
                   </p>
                 </div>
-                <div className="text-center">
-                  <p className="text-gray-600 text-[9px] uppercase tracking-wider">Intentos</p>
-                  <p className="text-base font-bold font-cyber" style={{ color: neon.primary }}>
+                <div className="text-center stat-pill">
+                  <p className="text-[8px] uppercase tracking-wider" style={{ color: 'var(--color-sepia)' }}>回数</p>
+                  <p className="text-sm font-bold font-ukiyo" style={{ color: colors.primary, fontWeight: 700 }}>
                     {moves}
                   </p>
                 </div>
-                <div className="text-center hidden md:block">
-                  <p className="text-gray-600 text-[9px] uppercase tracking-wider">Aciertos</p>
-                  <p className="text-base font-bold font-cyber" style={{ color: neon.primary }}>
+                <div className="text-center stat-pill hidden md:block">
+                  <p className="text-[8px] uppercase tracking-wider" style={{ color: 'var(--color-sepia)' }}>正解</p>
+                  <p className="text-sm font-bold font-ukiyo" style={{ color: colors.primary, fontWeight: 700 }}>
                     {matchedPairs.length}/{pairs}
                   </p>
                 </div>
               </>
             )}
 
+            {/* Mobile timer */}
             {!practiceMode && (
-              <div className="text-center sm:hidden">
-                <p className="text-sm font-bold font-cyber" style={{ color: neon.primary }}>
+              <div className="text-center sm:hidden stat-pill">
+                <p className="text-xs font-bold font-ukiyo" style={{ color: colors.primary, fontWeight: 700 }}>
                   <Timer running={timerRunning} onTimeRef={timeRef} />
                 </p>
               </div>
@@ -487,18 +544,18 @@ export function Game() {
 
             <button
               onClick={handleToggleMute}
-              className="py-1.5 px-2 rounded-lg bg-white/5 border border-white/10 text-gray-400
-                       hover:text-white hover:border-white/20 transition-colors text-sm"
+              className="btn-woodblock !p-1.5 !shadow-none"
+              style={{ boxShadow: '2px 2px 0 var(--color-sumi-black)' }}
               title={muted ? 'Activar sonido' : 'Silenciar'}
             >
               {muted ? (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--color-sepia)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
                   <line x1="23" y1="9" x2="17" y2="15" />
                   <line x1="17" y1="9" x2="23" y2="15" />
                 </svg>
               ) : (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--color-sepia)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
                   <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
                   <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
@@ -508,13 +565,16 @@ export function Game() {
 
             <button
               onClick={() => setGameStarted(false)}
-              className="py-1.5 px-3 rounded-lg bg-white/5 border border-white/10 text-gray-400
-                       hover:text-white hover:border-white/20 transition-colors text-xs"
+              className="btn-woodblock !py-1 !px-2.5 text-[11px]"
+              style={{ boxShadow: '2px 2px 0 var(--color-sumi-black)', color: 'var(--color-sepia)' }}
             >
-              Menu
+              戻る
             </button>
           </div>
         </div>
+
+        {/* Thin seigaiha under header on desktop */}
+        <div className="seigaiha-border-sm mt-1.5 hidden md:block" />
       </header>
 
       {/* Card Grid */}
@@ -527,21 +587,25 @@ export function Game() {
           }}
         >
           {cards.map((card) => (
-            <div key={card.id}>
-              <Card
-                katakana={card.katakana}
-                isFlipped={flippedSet.has(card.id) || matchedIds.has(card.id)}
-                isMatched={matchedIds.has(card.id)}
-                onClick={() => handleCardClick(card.id)}
-                difficulty={difficulty}
-              />
-            </div>
+            <Card
+              key={card.id}
+              katakana={card.katakana}
+              isFlipped={flippedSet.has(card.id) || matchedIds.has(card.id)}
+              isMatched={matchedIds.has(card.id)}
+              isFailing={failingIds.has(card.id)}
+              onClick={() => handleCardClick(card.id)}
+              difficulty={difficulty}
+            />
           ))}
         </div>
       </main>
 
-      <div className="lg:hidden flex justify-center mt-1 flex-shrink-0">
-        <InstagramButton />
+      {/* [ukiyo-e] Bottom area: IG + seigaiha footer */}
+      <div className="flex-shrink-0 mt-1">
+        <div className="lg:hidden flex justify-center mb-1">
+          <InstagramButton />
+        </div>
+        <div className="seigaiha-border-sm" />
       </div>
 
       <VictoryScreen

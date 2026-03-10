@@ -1,15 +1,39 @@
+/* [ukiyo-e] Google Fonts — Noto Serif JP for titles, Noto Sans JP for body */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@300;400;700&family=Noto+Sans+JP:wght@300;400;500;700&display=swap');
+
 @import "tailwindcss";
 
 :root {
-  --background: #0a0a0a;
-  --foreground: #ededed;
-  --akira-red: #ff0033;
-  --neon-blue: #00d4ff;
-  --neon-pink: #ff2d95;
-  --neon-violet: #b829dd;
-  --nishi-teal: #008080;
-  --washi-cream: #f5e6c8;
-  --sumi-black: #1a1a1a;
+  /* Colores Corporativos Nishi Nihongo Gakko */
+  --color-nishi-teal:        #3d8b83;
+  --color-nishi-teal-dark:   #2d6b64;
+  --color-nishi-brown:       #9e4a2e;
+
+  /* [ukiyo-e] Core Palette — Hiroshige & woodblock prints */
+  --color-hiroshige-blue:    #1B4F72;
+  --color-sky-bokashi:       #87CEEB;
+  --color-washi-cream:       #F5EDD6;
+  --color-washi-warm:        #EDE0C4;
+  --color-sumi-black:        #1A1008;
+  --color-vermillion:        #C0392B;
+  --color-ochre:             #C9A84C;
+  --color-moss-green:        #4A6741;
+  --color-indigo:            #2C3E7A;
+  --color-sepia:             #7B5E3A;
+
+  /* [sumi-e] Ink wash tones */
+  --color-ink-wash-light:    rgba(26, 16, 8, 0.06);
+  --color-ink-wash-medium:   rgba(26, 16, 8, 0.25);
+  --color-ink-wash-dark:     rgba(26, 16, 8, 0.65);
+  --color-cinnabar:          #E74C3C;
+
+  /* Semantic aliases */
+  --background: var(--color-washi-cream);
+  --foreground: var(--color-sumi-black);
+
+  /* [ukiyo-e] Typography */
+  --font-serif-jp: 'Noto Serif JP', 'Yu Mincho', serif;
+  --font-sans-jp:  'Noto Sans JP', 'Hiragino Kaku Gothic Pro', sans-serif;
 }
 
 @theme inline {
@@ -21,16 +45,28 @@
   box-sizing: border-box;
 }
 
+/* [ukiyo-e] Titles: serif japonés con peso ligero */
+h1, h2, .card-title {
+  font-family: var(--font-serif-jp);
+  font-weight: 300;
+  letter-spacing: 0.05em;
+}
+
+/* Body and UI: sans-serif japonés */
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: 'Noto Sans JP', 'Helvetica Neue', Arial, sans-serif;
+  background: var(--color-washi-cream);
+  color: var(--color-sumi-black);
+  font-family: var(--font-sans-jp);
   overflow-x: hidden;
 }
 
+button, input {
+  font-family: var(--font-sans-jp);
+}
+
 /* === 3D Card Utilities === */
-.perspective-1000 {
-  perspective: 1000px;
+.perspective-800 {
+  perspective: 800px;
 }
 
 .preserve-3d {
@@ -42,138 +78,196 @@ body {
   backface-visibility: hidden;
 }
 
-.will-change-transform {
-  will-change: transform;
-}
-
-/* === Washi Paper Background === */
+/* === [ukiyo-e] Washi Paper Background with fiber texture === */
 .washi-bg {
-  background-color: #0a0a0a;
+  background-color: var(--color-washi-cream);
   background-image:
-    radial-gradient(ellipse at 20% 50%, rgba(255, 0, 51, 0.08) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 20%, rgba(0, 212, 255, 0.06) 0%, transparent 50%),
-    radial-gradient(ellipse at 60% 80%, rgba(184, 41, 221, 0.05) 0%, transparent 50%);
+    /* [ukiyo-e] Subtle fiber pattern like real washi paper */
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4'%3E%3Cpath d='M0 0h1v1H0zm2 2h1v1H2z' fill='%23c9a84c' fill-opacity='0.05'/%3E%3C/svg%3E");
 }
 
-/* === Scanline Overlay — desktop only === */
-.scanlines::after {
-  content: '';
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  z-index: 9998;
-  background: repeating-linear-gradient(
-    0deg,
-    transparent,
-    transparent 2px,
-    rgba(0, 0, 0, 0.03) 2px,
-    rgba(0, 0, 0, 0.03) 4px
-  );
-}
-
-/* Disable scanlines on mobile for performance */
-@media (max-width: 768px) {
-  .scanlines::after {
-    display: none;
-  }
-}
-
-/* === Noise Overlay — desktop only === */
-.noise-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  opacity: 0.04;
-  z-index: 9999;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
-}
-
-/* Only animate noise on desktop */
-@media (min-width: 769px) {
-  .noise-overlay {
-    animation: noise 8s steps(10) infinite;
-  }
-}
-
-/* Hide noise entirely on low-end mobile */
-@media (max-width: 768px) {
-  .noise-overlay {
-    display: none;
-  }
-}
-
-@keyframes noise {
-  0%, 100% { background-position: 0 0; }
-  10% { background-position: -5% -10%; }
-  20% { background-position: -15% 5%; }
-  30% { background-position: 7% -25%; }
-  40% { background-position: 20% 25%; }
-  50% { background-position: -25% 10%; }
-  60% { background-position: 15% 5%; }
-  70% { background-position: 0% 15%; }
-  80% { background-position: 25% 35%; }
-  90% { background-position: -10% 10%; }
-}
-
-/* === Card Washi Texture === */
-.card-washi {
-  background:
-    linear-gradient(135deg, rgba(245, 230, 200, 0.05) 0%, rgba(220, 200, 170, 0.03) 100%);
-}
-
-.card-front-washi {
-  background:
-    radial-gradient(ellipse at 30% 30%, rgba(245, 230, 200, 0.95) 0%, rgba(235, 220, 190, 0.9) 100%);
-}
-
-/* === Responsive Card Grid === */
+/* === [ukiyo-e] Responsive Card Grid === */
 .card-grid {
   display: grid;
-  gap: 0.5rem;
+  gap: clamp(6px, 1.5vw, 14px);
   width: 100%;
   max-width: 100%;
 }
 
-@media (min-width: 640px) {
-  .card-grid {
-    gap: 0.625rem;
+/* === [ukiyo-e] Seigaiha Wave Pattern — prominent decorative footer === */
+.seigaiha-border {
+  height: 40px;
+  background:
+    radial-gradient(circle at 50% 0%, transparent 55%, var(--color-nishi-teal) 56%, var(--color-nishi-teal) 60%, transparent 61%) 0 0 / 24px 24px,
+    radial-gradient(circle at 50% 0%, transparent 55%, var(--color-nishi-teal-dark) 56%, var(--color-nishi-teal-dark) 58%, transparent 59%) 12px 0 / 24px 24px;
+  opacity: 0.85;
+}
+
+.seigaiha-border-sm {
+  height: 20px;
+  background:
+    radial-gradient(circle at 50% 0%, transparent 55%, var(--color-nishi-teal) 56%, var(--color-nishi-teal) 60%, transparent 61%) 0 0 / 16px 16px,
+    radial-gradient(circle at 50% 0%, transparent 55%, var(--color-nishi-teal-dark) 56%, var(--color-nishi-teal-dark) 58%, transparent 59%) 8px 0 / 16px 16px;
+  opacity: 0.65;
+}
+
+/* === [ukiyo-e] Decorative pine branch === */
+.decorative-branch {
+  position: fixed;
+  top: -10px;
+  right: -20px;
+  width: 220px;
+  height: 180px;
+  opacity: 0.12;
+  pointer-events: none;
+  z-index: 0;
+  isolation: isolate;
+  contain: layout style paint;
+}
+
+/* === [ukiyo-e] Mountain silhouette === */
+.mountain-silhouette {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 200px;
+  height: 80px;
+  opacity: 0.08;
+  pointer-events: none;
+}
+
+/* === [ukiyo-e] Custom Scrollbar === */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--color-washi-cream); }
+::-webkit-scrollbar-thumb { background: var(--color-nishi-teal); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-hiroshige-blue); }
+
+/* === [ukiyo-e] Font class for titles === */
+.font-ukiyo {
+  font-family: var(--font-serif-jp);
+  letter-spacing: 0.05em;
+  font-weight: 300;
+}
+
+/* === [ukiyo-e] Touch Targets for mobile === */
+@media (max-width: 768px) {
+  button, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
   }
 }
 
-@media (min-width: 1024px) {
-  .card-grid {
-    gap: 0.75rem;
-  }
+/* === [ukiyo-e] Card match success animation === */
+@keyframes matchPulse {
+  0% { box-shadow: 3px 3px 0 var(--color-moss-green), inset 0 0 0 3px var(--color-ochre); }
+  50% { box-shadow: 3px 3px 0 var(--color-moss-green), inset 0 0 0 3px var(--color-ochre), 0 0 16px 2px rgba(74, 103, 65, 0.35); }
+  100% { box-shadow: 3px 3px 0 var(--color-moss-green), inset 0 0 0 3px var(--color-ochre); }
 }
 
-/* === Custom Scrollbar === */
-::-webkit-scrollbar {
-  width: 6px;
+.card-match-animate {
+  animation: matchPulse 0.6s ease-out;
 }
 
-::-webkit-scrollbar-track {
-  background: #0a0a0a;
+/* === [ukiyo-e] Card fail shake === */
+@keyframes cardShake {
+  0%, 100% { transform: translateX(0); }
+  15% { transform: translateX(-4px) rotate(-0.5deg); }
+  30% { transform: translateX(3px) rotate(0.5deg); }
+  45% { transform: translateX(-3px); }
+  60% { transform: translateX(2px); }
+  75% { transform: translateX(-1px); }
 }
 
-::-webkit-scrollbar-thumb {
-  background: var(--neon-blue);
+.card-fail-shake {
+  animation: cardShake 0.4s ease-out;
+}
+
+/* === [ukiyo-e] Circular seal badge === */
+.seal-badge {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 2.5px solid var(--color-sumi-black);
+  background: var(--color-washi-cream);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(26, 16, 8, 0.15);
+  position: relative;
+}
+
+.seal-badge::after {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  border: 1px solid var(--color-ochre);
+}
+
+/* === [ukiyo-e] Woodblock button style (matching moodboard cards) === */
+.btn-woodblock {
+  background: var(--color-washi-warm);
+  border: 2px solid var(--color-sumi-black);
   border-radius: 3px;
+  box-shadow: 3px 3px 0 var(--color-sumi-black);
+  color: var(--color-sumi-black);
+  position: relative;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: var(--neon-pink);
+.btn-woodblock:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--color-sumi-black);
 }
 
-/* === Font for Titles === */
-.font-cyber {
-  font-family: 'Orbitron', 'Noto Sans JP', sans-serif;
-  letter-spacing: 0.1em;
+/* Inner ochre border for woodblock buttons */
+.btn-woodblock::before {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  border: 1px solid var(--color-ochre);
+  border-radius: 1px;
+  pointer-events: none;
+}
+
+.btn-primary {
+  background: var(--color-nishi-teal);
+  color: var(--color-washi-cream);
+}
+
+.btn-primary::before {
+  border-color: rgba(255,255,255,0.2);
+}
+
+/* === [ukiyo-e] Stat pill === */
+.stat-pill {
+  background: var(--color-washi-warm);
+  border: 1.5px solid var(--color-sumi-black);
+  border-radius: 3px;
+  padding: 4px 10px;
+  position: relative;
+}
+
+.stat-pill::before {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  border: 0.5px solid var(--color-ochre);
+  border-radius: 1px;
+  pointer-events: none;
+}
+
+/* === [ukiyo-e] Desktop card hover lift — GPU-friendly, no re-renders === */
+@media (hover: hover) {
+  .card-hover-lift {
+    transition: transform 0.2s ease, filter 0.2s ease;
+  }
+  .card-hover-lift:hover {
+    transform: translateY(-3px);
+    filter: brightness(1.03);
+  }
 }
 
 /* === Reduced motion === */
