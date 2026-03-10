@@ -180,7 +180,7 @@ export function Game() {
       const availW = container.clientWidth;
       const isMobileView = window.innerWidth < 640;
       const gap = isMobileView
-        ? (activeConfig.cols >= 6 ? 4 : 6)
+        ? (activeConfig.rows >= 8 ? 4 : 6)
         : window.innerWidth < 1024 ? 10 : 12;
 
       const maxCardFromH = (availH - gap * (rows - 1)) / rows;

@@ -69,7 +69,7 @@ export const DIFFICULTY_MOBILE_MEDIUM: DifficultyConfig = {
 };
 
 export const DIFFICULTY_MOBILE_HARD: DifficultyConfig = {
-  pairs: 18, name: 'Difícil', cols: 6, rows: 6, label: '6×6',
+  pairs: 16, name: 'Difícil', cols: 4, rows: 8, label: '4×8',
 };
 
 export type Difficulty = 'easy' | 'medium' | 'hard';
