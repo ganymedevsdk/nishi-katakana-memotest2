@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Katakana Memotest | Nishi Nihongo Gakko",
-  description: "Practica Katakana con este juego de memoria - 西日本語学園 Nishi Nihongo Gakko",
+  description: "Practica Katakana con este juego de memoria - 西日本語学校 Nishi Nihongo Gakko",
 };
 
 export default function RootLayout({

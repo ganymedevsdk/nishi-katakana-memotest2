@@ -306,39 +306,14 @@ export function Game() {
           animate={{ opacity: 1, y: 0 }}
           className="max-w-md w-full relative z-10"
         >
-          {/* [ukiyo-e] Header with circular seal badge + mountain */}
+          {/* [ukiyo-e] Header with logo only */}
           <motion.div
             initial={{ scale: 0.9 }}
             animate={{ scale: 1 }}
             transition={{ duration: 0.6 }}
             className="text-center mb-8 relative"
           >
-            {/* [ukiyo-e] Mountain silhouette behind logo */}
             <div className="relative flex flex-col items-center">
-              <svg className="mountain-silhouette" viewBox="0 0 200 80" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style={{ position: 'relative', opacity: 0.08, marginBottom: '-30px' }}>
-                <path d="M0 80 L40 30 L55 45 L80 15 L100 5 L120 15 L145 45 L160 30 L200 80 Z" fill="var(--color-sumi-black)" />
-              </svg>
-
-              {/* [ukiyo-e] Circular seal badge with 西 */}
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.15 }}
-                className="seal-badge mb-3 relative z-10"
-              >
-                <span
-                  style={{
-                    fontFamily: 'var(--font-serif-jp)',
-                    fontSize: '1.8rem',
-                    fontWeight: 700,
-                    color: 'var(--color-sumi-black)',
-                    lineHeight: 1,
-                  }}
-                >
-                  西
-                </span>
-              </motion.div>
-
               {/* Nishi logo */}
               <motion.div
                 initial={{ opacity: 0 }}
@@ -373,7 +348,7 @@ export function Game() {
               </span>
             </h1>
             <p style={{ color: 'var(--color-sepia)' }} className="text-xs mt-1">
-              西日本語学園 &middot; Nishi Nihongo Gakko
+              西日本語学校 &middot; Nishi Nihongo Gakko
             </p>
           </motion.div>
 
