@@ -53,3 +53,7 @@ next-env.d.ts
 .claude/
 
 .vercel
+
+# === AI Prompts ===
+Prompt*.md
+Prompt para Agente de Cursor*.md
